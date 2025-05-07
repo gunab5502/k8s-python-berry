@@ -1,0 +1,31 @@
+api:
+  deployment: api-deployment
+  label: api
+  replicas: 2
+  container: api
+  registry:
+    name: guna5502
+    repo: api-server
+    version: v1
+  port: 5005
+  service: api-service
+  serviceType: ClusterIP
+  ingress: api-ingress
+  ingressClass: nginx
+  ingressPath: /api/
+  
+ui:
+  deployment: ui-deployment
+  label: ui
+  replicas: 1
+  container: ui
+  registry:
+    name: guna5502
+    repo: react-ui
+    version: v1
+  port: 3000
+  service: ui-service
+  serviceType: ClusterIP
+  ingress: reach-ingress
+  ingressClass: nginx
+  ingressPath: /
