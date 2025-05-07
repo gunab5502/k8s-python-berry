@@ -5,6 +5,7 @@ COPY . .
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+EXPOSE 5005
 
 # install python dependencies
 RUN pip install --upgrade pip
