@@ -1,6 +1,5 @@
-
 pipeline {
-    agent none
+    agent any
 
     environment {
         VERSION = "${BUILD_NUMBER}"
@@ -16,13 +15,11 @@ pipeline {
         ART_PASS = credentials('artifactory-password')
         DOCKER_USER = credentials('dockerhub-username')
         DOCKER_PASS = credentials('dockerhub-password')
-        ARGOCD_AUTH_TOKEN = credentials('argocd-auth-token')
     }
 
     stages {
 
         stage('Checkout Code') {
-            agent { label 'docker' }
             steps {
                 checkout scm
                 sh 'pwd && ls -l'
@@ -30,7 +27,6 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            agent { label 'docker' }
             steps {
                 dir('api-server-flask') {
                     sh "docker build -t ${IMAGE_API} ."
@@ -42,10 +38,9 @@ pipeline {
         }
 
         stage('Push Docker Images') {
-            agent { label 'docker' }
             steps {
                 sh """
-                    printf "%s" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     docker push ${IMAGE_API}
                     docker push ${IMAGE_UI}
                 """
@@ -53,7 +48,6 @@ pipeline {
         }
 
         stage('Package Helm Chart') {
-            agent { label 'k8s' }
             steps {
                 dir('helm-api-ui') {
                     sh """
@@ -65,7 +59,6 @@ pipeline {
         }
 
         stage('Push Helm Chart to Artifactory') {
-            agent { label 'k8s' }
             steps {
                 dir('helm-api-ui') {
                     sh """
@@ -76,25 +69,15 @@ pipeline {
                 }
             }
         }
-
-        stage('Trigger ArgoCD Sync') {
-            agent { label 'k8s' }
-            steps {
-                sh """
-                    export ARGOCD_SERVER=a44656053831547038ff313ff47c335d-333561809.us-east-1.elb.amazonaws.com
-                    argocd login $ARGOCD_SERVER --insecure --auth-token $ARGOCD_AUTH_TOKEN
-                    argocd app sync ${HELM_RELEASE_NAME}
-                """
-            }
-        }
     }
 
     post {
         success {
-            echo "Successfully deployed version ${VERSION} via ArgoCD sync."
+            echo "Successfully built and pushed Docker images and Helm chart."
         }
         failure {
             echo "Pipeline failed."
         }
     }
 }
+
